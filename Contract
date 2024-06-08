@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract ProofOfPlay {
+    address public owner;
+    mapping(address => uint256) public playCount;
+    mapping(address => uint256) public rewards;
+
+    event Played(address indexed player, uint256 newPlayCount);
+    event Rewarded(address indexed player, uint256 reward);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the contract owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // Function to be called when a player plays the game
+    function play() public {
+        playCount[msg.sender]++;
+        emit Played(msg.sender, playCount[msg.sender]);
+        
+        if (playCount[msg.sender] % 10 == 0) {
+            uint256 reward = 1 ether; // Reward 1 ether for every 10 plays
+            rewards[msg.sender] += reward;
+            emit Rewarded(msg.sender, reward);
+        }
+    }
+
+    // Function to claim rewards
+    function claimReward() public {
+        uint256 reward = rewards[msg.sender];
+        require(reward > 0, "No rewards to claim");
+        rewards[msg.sender] = 0;
+        payable(msg.sender).transfer(reward);
+    }
+
+    // Function to fund the contract
+    function fundContract() public payable onlyOwner {
+        require(msg.value > 0, "Must send some ether");
+    }
+
+    // Function to withdraw funds (only owner)
+    function withdraw(uint256 amount) public onlyOwner {
+        require(address(this).balance >= amount, "Insufficient balance");
+        payable(owner).transfer(amount);
+    }
+
+    // Fallback function to receive ether
+    receive() external payable {}
+}
